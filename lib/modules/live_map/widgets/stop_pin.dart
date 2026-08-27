@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../shared/models/stop.dart';
+import '../../../shared/theme/app_theme.dart';
 
 /// The coloured pin dropped on the map for each stop. Colour follows the
 /// stop's urgency so it always matches the Last Service Tracker chips.
@@ -16,9 +17,18 @@ class StopPin extends StatelessWidget {
           color: stop.urgency.color,
           shape: BoxShape.circle,
           border: Border.all(color: Colors.white, width: 2),
-          boxShadow: [BoxShadow(color: stop.urgency.color.withOpacity(0.6), blurRadius: 8)],
+          boxShadow: [
+            BoxShadow(
+              color: stop.urgency.color.withOpacity(0.6),
+              blurRadius: 8,
+            ),
+          ],
         ),
-        child: const Icon(Icons.directions_transit_rounded, color: Colors.white, size: 18),
+        child: const Icon(
+          Icons.directions_transit_rounded,
+          color: Colors.white,
+          size: 18,
+        ),
       ),
     );
   }
