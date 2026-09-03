@@ -38,4 +38,20 @@ class LocationService {
       return const LocationResult(LocationStatus.unavailable);
     }
   }
+
+  /// Emits the phone's current position and subsequent GPS updates.
+  /// Consumers should cancel their subscription in dispose.
+  Stream<LatLng> positionStream() async* {
+    final initial = await requestCurrentLocation();
+    if (initial.status != LocationStatus.available) return;
+    yield initial.position!;
+    await for (final position in Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 15,
+      ),
+    )) {
+      yield LatLng(position.latitude, position.longitude);
+    }
+  }
 }

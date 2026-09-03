@@ -1,5 +1,6 @@
 import 'package:latlong2/latlong.dart';
 import '../shared/models/stop.dart';
+import '../shared/theme/app_theme.dart';
 import 'gtfs_models.dart';
 import 'gtfs_service.dart';
 
@@ -30,6 +31,7 @@ class TransitRepository {
   static final TransitRepository instance = TransitRepository._();
 
   List<Stop>? _cachedStops;
+  List<Stop>? _stationDirectory;
   TransitDataSource _lastSource = TransitDataSource.mock;
 
   TransitDataSource get lastSource => _lastSource;
@@ -66,6 +68,35 @@ class TransitRepository {
         .as(LengthUnit.Meter, userLocation, a.position)
         .compareTo(distance.as(LengthUnit.Meter, userLocation, b.position)));
     return ordered;
+  }
+
+  /// Station directory for destination autocomplete. It contains the actual
+  /// GTFS station names where online, with the app's known stops as fallback.
+  Future<List<Stop>> searchStops(String query) async {
+    if (_stationDirectory == null) {
+      try {
+        final gtfsStops =
+            await GtfsService.fetchStops(category: 'rapid-rail-kl');
+        _stationDirectory = gtfsStops
+            .map((stop) => Stop(
+                  name: stop.name,
+                  platform: 'Rapid Rail station',
+                  position: LatLng(stop.lat, stop.lon),
+                  timeToDeparture: Duration.zero,
+                  urgency: ServiceUrgency.onTime,
+                  gtfsStopId: stop.stopId,
+                ))
+            .toList();
+      } catch (_) {
+        _stationDirectory = MockData.nearbyStops;
+      }
+    }
+    final needle = query.trim().toLowerCase();
+    if (needle.isEmpty) return const [];
+    return _stationDirectory!
+        .where((stop) => stop.name.toLowerCase().contains(needle))
+        .take(6)
+        .toList();
   }
 
   /// Replaces each mock stop's coordinates/id with the real GTFS entry

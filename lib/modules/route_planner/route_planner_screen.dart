@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../shared/models/route_model.dart';
 import '../../services/location_service.dart';
+import '../../services/transit_repository.dart';
+import '../../shared/models/stop.dart';
 import 'widgets/location_field.dart';
 import 'widgets/route_card.dart';
 
@@ -19,6 +21,8 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
   bool _searched = false;
   bool _locating = false;
   String? _validationMessage;
+  List<Stop> _suggestions = const [];
+  int _searchVersion = 0;
 
   @override
   void dispose() {
@@ -43,7 +47,31 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
         LocationField(
             icon: Icons.location_on_rounded,
             hint: 'Destination',
-            controller: _destinationController),
+            controller: _destinationController,
+            onChanged: _findSuggestions),
+        if (_suggestions.isNotEmpty)
+          Container(
+            margin: const EdgeInsets.only(top: 4),
+            decoration: BoxDecoration(
+                color: const Color(0xFF252946),
+                borderRadius: BorderRadius.circular(12)),
+            child: Column(
+              children: _suggestions
+                  .map((stop) => ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.train_rounded, size: 18),
+                        title: Text(stop.name,
+                            style: const TextStyle(fontSize: 14)),
+                        subtitle: Text(stop.platform,
+                            style: const TextStyle(fontSize: 11)),
+                        onTap: () => setState(() {
+                          _destinationController.text = stop.name;
+                          _suggestions = const [];
+                        }),
+                      ))
+                  .toList(),
+            ),
+          ),
         const SizedBox(height: 10),
         TextButton.icon(
           onPressed: _locating ? null : _fillCurrentLocation,
@@ -105,5 +133,16 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
           : null;
       _searched = origin.isNotEmpty && destination.isNotEmpty;
     });
+  }
+
+  Future<void> _findSuggestions(String query) async {
+    final request = ++_searchVersion;
+    if (query.trim().length < 2) {
+      setState(() => _suggestions = const []);
+      return;
+    }
+    final stops = await TransitRepository.instance.searchStops(query);
+    if (!mounted || request != _searchVersion) return;
+    setState(() => _suggestions = stops);
   }
 }
