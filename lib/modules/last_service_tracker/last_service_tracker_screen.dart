@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../services/transit_repository.dart';
+import '../../services/location_service.dart';
 import '../../shared/models/stop.dart';
 import '../../shared/theme/app_theme.dart';
 import '../../shared/widgets/data_source_badge.dart';
@@ -21,7 +22,8 @@ class LastServiceTrackerScreen extends StatefulWidget {
   const LastServiceTrackerScreen({super.key, this.onOpenLiveMap});
 
   @override
-  State<LastServiceTrackerScreen> createState() => _LastServiceTrackerScreenState();
+  State<LastServiceTrackerScreen> createState() =>
+      _LastServiceTrackerScreenState();
 }
 
 class _LastServiceTrackerScreenState extends State<LastServiceTrackerScreen> {
@@ -30,6 +32,8 @@ class _LastServiceTrackerScreenState extends State<LastServiceTrackerScreen> {
   List<Stop> _stops = MockData.nearbyStops;
   TransitDataSource _source = TransitDataSource.mock;
   Duration _remaining = Duration.zero;
+  bool _locating = false;
+  String? _locationMessage;
 
   @override
   void initState() {
@@ -63,6 +67,39 @@ class _LastServiceTrackerScreenState extends State<LastServiceTrackerScreen> {
     });
   }
 
+  Future<void> _useCurrentLocation() async {
+    setState(() {
+      _locating = true;
+      _locationMessage = null;
+    });
+    final location = await LocationService.instance.requestCurrentLocation();
+    if (!mounted) return;
+    if (location.status == LocationStatus.available) {
+      setState(() {
+        _stops = TransitRepository.instance
+            .sortByDistance(_stops, location.position!);
+        _remaining = _nearestStop.timeToDeparture;
+        _locationMessage = 'Stops are ordered by distance from your location.';
+        _locating = false;
+      });
+      return;
+    }
+    const messages = {
+      LocationStatus.disabled:
+          'Turn on Location Services to find nearby stops.',
+      LocationStatus.denied:
+          'Location permission was not granted. You can try again anytime.',
+      LocationStatus.deniedForever:
+          'Location permission is blocked. Enable it in your phone settings.',
+      LocationStatus.unavailable:
+          'We could not get your location. Please try again.',
+    };
+    setState(() {
+      _locationMessage = messages[location.status];
+      _locating = false;
+    });
+  }
+
   @override
   void dispose() {
     _timer?.cancel();
@@ -82,16 +119,19 @@ class _LastServiceTrackerScreenState extends State<LastServiceTrackerScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.gold));
+      return const Center(
+          child: CircularProgressIndicator(color: AppColors.gold));
     }
 
-    final criticalCount = _stops.where((s) => s.urgency == ServiceUrgency.critical).length;
+    final criticalCount =
+        _stops.where((s) => s.urgency == ServiceUrgency.critical).length;
 
     return RefreshIndicator(
       color: AppColors.gold,
       backgroundColor: AppColors.surface,
       onRefresh: () async {
-        final result = await TransitRepository.instance.getNearbyStops(forceRefresh: true);
+        final result =
+            await TransitRepository.instance.getNearbyStops(forceRefresh: true);
         if (!mounted) return;
         setState(() {
           _stops = result.stops;
@@ -104,18 +144,42 @@ class _LastServiceTrackerScreenState extends State<LastServiceTrackerScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Homebound', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+              const Text('Homebound',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
               CircleAvatar(
                 radius: 18,
                 backgroundColor: AppColors.surface,
-                child: const Icon(Icons.person_rounded, color: AppColors.gold, size: 20),
+                child: const Icon(Icons.person_rounded,
+                    color: AppColors.gold, size: 20),
               ),
             ],
           ),
           const SizedBox(height: 8),
-          Align(alignment: Alignment.centerLeft, child: DataSourceBadge(source: _source)),
+          Align(
+              alignment: Alignment.centerLeft,
+              child: DataSourceBadge(source: _source)),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: _locating ? null : _useCurrentLocation,
+            icon: _locating
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.my_location_rounded),
+            label: Text(_locating
+                ? 'Finding your location…'
+                : 'Use my current location'),
+          ),
+          if (_locationMessage != null) ...[
+            const SizedBox(height: 8),
+            Text(_locationMessage!,
+                style: const TextStyle(
+                    fontSize: 12, color: AppColors.textSecondary)),
+          ],
           const SizedBox(height: 16),
-          CountdownCard(stop: _nearestStop, remaining: _remaining, urgency: _urgency),
+          CountdownCard(
+              stop: _nearestStop, remaining: _remaining, urgency: _urgency),
           const SizedBox(height: 16),
           LiveMapPreviewCard(
             nearbyCount: _stops.length,
@@ -125,13 +189,22 @@ class _LastServiceTrackerScreenState extends State<LastServiceTrackerScreen> {
           const SizedBox(height: 16),
           const Row(
             children: [
-              Expanded(child: StatTile(label: 'Next Bus', value: '11:52', caption: 'Rapid KL 780')),
+              Expanded(
+                  child: StatTile(
+                      label: 'Next Bus',
+                      value: '11:52',
+                      caption: 'Rapid KL 780')),
               SizedBox(width: 12),
-              Expanded(child: StatTile(label: 'Delay Risk', value: '68%', caption: 'AI prediction')),
+              Expanded(
+                  child: StatTile(
+                      label: 'Delay Risk',
+                      value: '68%',
+                      caption: 'AI prediction')),
             ],
           ),
           const SizedBox(height: 20),
-          const Text('Nearby Stops', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          const Text('Nearby Stops',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
           const SizedBox(height: 10),
           ..._stops.map((s) => StopTile(stop: s)),
         ],
