@@ -29,6 +29,7 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
   Timer? _vehicleTimer;
   bool _loading = true;
   bool _loadingVehicles = false;
+  bool _mapReady = false;
   List<Stop> _stops = MockData.nearbyStops;
   List<TransitVehicle> _vehicles = const [];
   TransitDataSource _source = TransitDataSource.mock;
@@ -66,8 +67,9 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
       setState(() {
         _userLocation = position;
         _stops = TransitRepository.instance.sortByDistance(_stops, position);
+        _liveMessage ??= 'Your location is live. Loading nearby transport…';
       });
-      _mapController.move(position, 14.5);
+      if (_mapReady) _mapController.move(position, 14.5);
     });
   }
 
@@ -147,34 +149,55 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(18),
-            child: FlutterMap(
-              mapController: _mapController,
-              options: MapOptions(initialCenter: center, initialZoom: 14),
-              children: [
-                TileLayer(
-                    urlTemplate:
-                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    userAgentPackageName: 'com.homebound.app'),
-                MarkerLayer(markers: [
-                  ..._stops.map((stop) => Marker(
-                      point: stop.position,
-                      width: 40,
-                      height: 40,
-                      child: StopPin(stop: stop))),
-                  if (_userLocation != null)
-                    Marker(
-                        point: _userLocation!,
+            child: Stack(children: [
+              FlutterMap(
+                mapController: _mapController,
+                options: MapOptions(
+                  initialCenter: center,
+                  initialZoom: 14,
+                  onMapReady: () {
+                    _mapReady = true;
+                    if (_userLocation != null)
+                      _mapController.move(_userLocation!, 14.5);
+                  },
+                ),
+                children: [
+                  TileLayer(
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.homebound.app'),
+                  MarkerLayer(markers: [
+                    ..._stops.map((stop) => Marker(
+                        point: stop.position,
+                        width: 40,
+                        height: 40,
+                        child: StopPin(stop: stop))),
+                    if (_userLocation != null)
+                      Marker(
+                          point: _userLocation!,
+                          width: 42,
+                          height: 42,
+                          child: const _UserLocationPin()),
+                    ...shownVehicles.map((vehicle) => Marker(
+                        point: vehicle.position,
                         width: 42,
                         height: 42,
-                        child: const _UserLocationPin()),
-                  ...shownVehicles.map((vehicle) => Marker(
-                      point: vehicle.position,
-                      width: 42,
-                      height: 42,
-                      child: _VehiclePin(vehicle: vehicle))),
-                ]),
-              ],
-            ),
+                        child: _VehiclePin(vehicle: vehicle))),
+                  ]),
+                ],
+              ),
+              Positioned(
+                right: 10,
+                bottom: 10,
+                child: FloatingActionButton.small(
+                  heroTag: 'centerLocation',
+                  onPressed: _startLocationTracking,
+                  backgroundColor: AppColors.surface,
+                  child: const Icon(Icons.my_location_rounded,
+                      color: AppColors.gold),
+                ),
+              ),
+            ]),
           ),
         ),
       ),
