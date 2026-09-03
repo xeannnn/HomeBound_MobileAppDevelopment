@@ -28,6 +28,8 @@
 	<true/>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Homebound uses your location to show nearby public transport stops and plan your trip.</string>
 		<key>UIApplicationSupportsMultipleScenes</key>
 		<false/>
 		<key>UISceneConfigurations</key>
