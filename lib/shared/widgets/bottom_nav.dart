@@ -21,49 +21,66 @@ class HomeboundBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLandscape =
+        MediaQuery.orientationOf(context) == Orientation.landscape;
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.navy,
         border: Border(top: BorderSide(color: AppColors.divider, width: 0.6)),
       ),
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: EdgeInsets.symmetric(
+        vertical: isLandscape ? 10 : 8,
+        horizontal: isLandscape ? 6 : 0,
+      ),
       child: SafeArea(
         top: false,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: List.generate(_items.length, (i) {
-            final item = _items[i];
-            final selected = i == currentIndex;
-            final isSos = item.label == 'SOS';
-            final color = isSos
-                ? AppColors.critical
-                : (selected ? AppColors.gold : AppColors.textSecondary);
-            return InkWell(
-              onTap: () => onTap(i),
-              borderRadius: BorderRadius.circular(12),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(item.icon, color: color, size: 22),
-                    const SizedBox(height: 2),
-                    Text(
-                      item.label,
-                      style: TextStyle(
-                        color: color,
-                        fontSize: 11,
-                        fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
+        child: isLandscape
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: _buildItems(vertical: true),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: _buildItems(),
               ),
-            );
-          }),
-        ),
       ),
     );
+  }
+
+  List<Widget> _buildItems({bool vertical = false}) {
+    return List.generate(_items.length, (i) {
+      final item = _items[i];
+      final selected = i == currentIndex;
+      final isSos = item.label == 'SOS';
+      final color = isSos
+          ? AppColors.critical
+          : (selected ? AppColors.gold : AppColors.textSecondary);
+      return InkWell(
+        onTap: () => onTap(i),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: vertical ? 8 : 10,
+            vertical: vertical ? 5 : 4,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(item.icon, color: color, size: 22),
+              const SizedBox(height: 2),
+              Text(
+                item.label,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
   }
 }
 

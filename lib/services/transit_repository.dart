@@ -34,7 +34,8 @@ class TransitRepository {
 
   TransitDataSource get lastSource => _lastSource;
 
-  Future<TransitLookupResult> getNearbyStops({bool forceRefresh = false}) async {
+  Future<TransitLookupResult> getNearbyStops(
+      {bool forceRefresh = false}) async {
     if (_cachedStops != null && !forceRefresh) {
       return TransitLookupResult(_cachedStops!, TransitDataSource.cached);
     }
@@ -54,6 +55,17 @@ class TransitRepository {
       _lastSource = TransitDataSource.mock;
       return TransitLookupResult(MockData.nearbyStops, TransitDataSource.mock);
     }
+  }
+
+  /// Orders the available stop list by walking distance from a device location.
+  /// The distance is calculated locally, so this still works with cached data.
+  List<Stop> sortByDistance(List<Stop> stops, LatLng userLocation) {
+    const distance = Distance();
+    final ordered = [...stops];
+    ordered.sort((a, b) => distance
+        .as(LengthUnit.Meter, userLocation, a.position)
+        .compareTo(distance.as(LengthUnit.Meter, userLocation, b.position)));
+    return ordered;
   }
 
   /// Replaces each mock stop's coordinates/id with the real GTFS entry
@@ -79,6 +91,8 @@ class TransitRepository {
 
   String _stripSuffix(String name) {
     // "Pasar Seni LRT" -> "Pasar Seni" so it matches GTFS naming variants.
-    return name.replaceAll(RegExp(r'\s+(LRT|MRT|Station)$', caseSensitive: false), '').trim();
+    return name
+        .replaceAll(RegExp(r'\s+(LRT|MRT|Station)$', caseSensitive: false), '')
+        .trim();
   }
 }

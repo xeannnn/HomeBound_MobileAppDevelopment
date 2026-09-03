@@ -26,17 +26,15 @@ class _DashboardShellState extends State<DashboardShell> {
 
   @override
   Widget build(BuildContext context) {
+    final isLandscape =
+        MediaQuery.orientationOf(context) == Orientation.landscape;
     final screens = [
       LastServiceTrackerScreen(
         onOpenLiveMap: () => _goToTab(1),
       ),
-
       const LiveMapScreen(),
-
       const RoutePlannerScreen(),
-
       const AiDelayPredictionScreen(),
-
       const PlaceholderModuleScreen(
         title: 'SOS Panic Button',
         owner: 'Kaiser Tan King Sheng',
@@ -44,17 +42,28 @@ class _DashboardShellState extends State<DashboardShell> {
       ),
     ];
 
+    final content = SafeArea(
+      child: IndexedStack(
+        index: _index,
+        children: screens,
+      ),
+    );
+    final navigation = HomeboundBottomNav(
+      currentIndex: _index,
+      onTap: _goToTab,
+    );
+
     return Scaffold(
-      body: SafeArea(
-        child: IndexedStack(
-          index: _index,
-          children: screens,
-        ),
-      ),
-      bottomNavigationBar: HomeboundBottomNav(
-        currentIndex: _index,
-        onTap: _goToTab,
-      ),
+      body: isLandscape
+          ? Row(
+              children: [
+                navigation,
+                const VerticalDivider(width: 1),
+                Expanded(child: content),
+              ],
+            )
+          : content,
+      bottomNavigationBar: isLandscape ? null : navigation,
     );
   }
 }
