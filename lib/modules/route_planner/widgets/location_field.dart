@@ -7,18 +7,21 @@ class LocationField extends StatelessWidget {
   final IconData icon;
   final String hint;
   final TextEditingController controller;
+  final ValueChanged<String>? onChanged;
 
   const LocationField({
     super.key,
     required this.icon,
     required this.hint,
     required this.controller,
+    this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+          color: AppColors.surface, borderRadius: BorderRadius.circular(12)),
       padding: const EdgeInsets.symmetric(horizontal: 14),
       child: Row(
         children: [
@@ -27,6 +30,7 @@ class LocationField extends StatelessWidget {
           Expanded(
             child: TextField(
               controller: controller,
+              onChanged: onChanged,
               style: const TextStyle(fontSize: 14),
               decoration: InputDecoration(
                 hintText: hint,
