@@ -6,6 +6,7 @@ import '../modules/last_service_tracker/last_service_tracker_screen.dart';
 import '../modules/live_map/live_map_screen.dart';
 import '../modules/route_planner/route_planner_screen.dart';
 import '../modules/ai_delay_prediction/ai_delay_prediction_screen.dart';
+
 import 'placeholder_module_screen.dart';
 
 class DashboardShell extends StatefulWidget {
@@ -28,6 +29,7 @@ class _DashboardShellState extends State<DashboardShell> {
   Widget build(BuildContext context) {
     final isLandscape =
         MediaQuery.orientationOf(context) == Orientation.landscape;
+
     final screens = [
       LastServiceTrackerScreen(
         onOpenLiveMap: () => _goToTab(1),
@@ -48,6 +50,7 @@ class _DashboardShellState extends State<DashboardShell> {
         children: screens,
       ),
     );
+
     final navigation = HomeboundBottomNav(
       currentIndex: _index,
       onTap: _goToTab,
@@ -56,12 +59,12 @@ class _DashboardShellState extends State<DashboardShell> {
     return Scaffold(
       body: isLandscape
           ? Row(
-              children: [
-                navigation,
-                const VerticalDivider(width: 1),
-                Expanded(child: content),
-              ],
-            )
+        children: [
+          navigation,
+          const VerticalDivider(width: 1),
+          Expanded(child: content),
+        ],
+      )
           : content,
       bottomNavigationBar: isLandscape ? null : navigation,
     );
